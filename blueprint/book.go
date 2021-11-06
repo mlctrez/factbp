@@ -1,27 +1,25 @@
 package blueprint
 
 type Book struct {
-	Item        string              `json:"item"`
-	Label       string              `json:"label,omitempty"`
-	LabelColor  string              `json:"label_color,omitempty"`
-	ActiveIndex uint64              `json:"active_index"`
-	Blueprints  []*IndexedBlueprint `json:"blueprints"`
-	Version     *uint64             `json:"version,omitempty"`
+	Base
+	ActiveIndex uint64       `json:"active_index"`
+	Blueprints  []*Container `json:"blueprints"`
 }
 
-type IndexedBlueprint struct {
-	Index     uint64     `json:"index"`
-	Blueprint *Blueprint `json:"blueprint"`
-}
-
-func (b *Book) AddBlueprint(bp *Blueprint) {
+func (b *Book) AddBlueprint(blueprint *Blueprint) {
 	if b.Blueprints == nil {
-		b.Blueprints = make([]*IndexedBlueprint, 0)
+		b.Blueprints = make([]*Container, 0)
 	}
 	index := uint64(len(b.Blueprints))
-	b.Blueprints = append(b.Blueprints, &IndexedBlueprint{
-		Index:     index,
-		Blueprint: bp,
-	})
+	c := &Container{Blueprint: blueprint, Index: &index}
+	b.Blueprints = append(b.Blueprints, c)
+}
 
+func (b *Book) AddBook(book *Book) {
+	if b.Blueprints == nil {
+		b.Blueprints = make([]*Container, 0)
+	}
+	index := uint64(len(b.Blueprints))
+	c := &Container{Book: book, Index: &index}
+	b.Blueprints = append(b.Blueprints, c)
 }

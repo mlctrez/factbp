@@ -9,20 +9,32 @@ import (
 	"os"
 )
 
-type GenericForm struct {
+// Container represents an item ( book or blueprint ) stored in a blueprint string or an item in a blueprint book.
+//
+// The Index field on the root container should not be set. It will be cleared when any of the write
+// methods are invoked.
+type Container struct {
 	Blueprint *Blueprint `json:"blueprint,omitempty"`
 	Book      *Book      `json:"blueprint_book,omitempty"`
+	Index     *uint64    `json:"index,omitempty"`
 }
 
-func (g *GenericForm) WriteJson(output io.Writer) (err error) {
-	indent, err := json.MarshalIndent(g, "", "  ")
+// WriteJson writes an indented representation of the container.
+func (c *Container) WriteJson(output io.Writer) (err error) {
+	indent, err := json.MarshalIndent(c, "", "  ")
 	if err == nil {
 		_, err = output.Write(indent)
 	}
 	return
 }
 
-func (g *GenericForm) Write(output io.Writer) error {
+// Write compresses the blueprint json data using zlib, encodes it using base64, and prepends the version.
+//
+// Reference: https://wiki.factorio.com/Blueprint_string_format
+func (c *Container) Write(output io.Writer) error {
+	if c.Index!=nil {
+		c.Index=nil
+	}
 
 	_, err := output.Write([]byte("0"))
 	if err != nil {
@@ -31,7 +43,7 @@ func (g *GenericForm) Write(output io.Writer) error {
 	b := base64.NewEncoder(base64.StdEncoding, output)
 	z := zlib.NewWriter(b)
 	j := json.NewEncoder(z)
-	err = j.Encode(g)
+	err = j.Encode(c)
 	if err != nil {
 		return err
 	}
@@ -55,37 +67,17 @@ func (g *GenericForm) Write(output io.Writer) error {
 	return nil
 }
 
-func (g *GenericForm) CreateFile(path string) error {
+// CreateFile is shorthand for os.Create followed by Write.
+func (c *Container) CreateFile(path string) error {
 	output, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	return g.Write(output)
+	return c.Write(output)
 }
 
-func (g *GenericForm) AddBlueprint(b *Blueprint) {
-
-	// if we have an existing book, add the blueprint to it
-	if g.Book != nil {
-		g.Book.AddBlueprint(b)
-		return
-	}
-
-	// no book, but existing blueprint, move both to book
-	if g.Blueprint != nil {
-		previous := g.Blueprint
-		g.Blueprint = nil
-		g.Book = &Book{}
-		g.Book.AddBlueprint(previous)
-		g.AddBlueprint(b)
-		return
-	}
-
-	// assign single blueprint
-	g.Blueprint = b
-}
-
-func Read(io io.ReadCloser) *GenericForm {
+// Read decodes the versioned, base64 encoded, zlib compressed json data.
+func Read(io io.ReadCloser) *Container {
 
 	version := []byte{0}
 
@@ -98,7 +90,7 @@ func Read(io io.ReadCloser) *GenericForm {
 		log.Fatal("not a blueprint version I understand", version[0])
 	}
 
-	m := &GenericForm{}
+	m := &Container{}
 
 	reader, err := zlib.NewReader(base64.NewDecoder(base64.StdEncoding, io))
 	if err != nil {
@@ -114,6 +106,7 @@ func Read(io io.ReadCloser) *GenericForm {
 
 }
 
+// ReadAsMap is a convenience method for extracting the blueprint data from an encoded blueprint string.
 func ReadAsMap(io io.ReadCloser) map[string]interface{} {
 	version := []byte{0}
 

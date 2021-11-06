@@ -1,14 +1,18 @@
 package blueprint
 
 type Blueprint struct {
-	Item       *string     `json:"item,omitempty"`
-	Label      *string     `json:"label,omitempty"`
-	LabelColor *string     `json:"label_color,omitempty"`
-	Entities   []*Entity   `json:"entities,omitempty"`
-	Tiles      []*Tile     `json:"tiles,omitempty"`
-	Icons      []*Icon     `json:"icons,omitempty"`
-	Schedules  []*Schedule `json:"schedules,omitempty"`
-	Version    *uint64     `json:"version,omitempty"`
+	Base
+	Entities               []*Entity    `json:"entities,omitempty"`
+	Tiles                  []*Tile      `json:"tiles,omitempty"`
+	Schedules              []*Schedule  `json:"schedules,omitempty"`
+	// SnapToGrid will be non-nil when snap to grid is enabled.
+	//
+	// Minimum value is 1,1 and for blueprints containing rails x and y must be multiples of 2
+	SnapToGrid             *PositionInt `json:"snap-to-grid,omitempty"`
+	// AbsoluteSnapping must be present when SnapToGrid is set and indicates the type of snapping.
+	AbsoluteSnapping       *bool        `json:"absolute-snapping,omitempty"`         // true when absolute snapping selected
+	// PositionRelativeToGrid will be present only if absolute snapping is true.
+	PositionRelativeToGrid *PositionInt `json:"position-relative-to-grid,omitempty"` // present when abs snapping on and not 0,0
 }
 
 func (b *Blueprint) AddEntity(e *Entity) {
@@ -25,4 +29,3 @@ func (b *Blueprint) AddTile(t *Tile) {
 	}
 	b.Tiles = append(b.Tiles, t)
 }
-
